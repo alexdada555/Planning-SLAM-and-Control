@@ -1,0 +1,37 @@
+X4 Quadcopter v125
+
+Component Instances (1)
+Area	3195.248 cm^2
+Density	2.213 g / cm^3
+Mass	799.406 g
+Volume	361.20 cm^3
+Physical Material	(Various)
+
+Bounding Box
+	Length 	 62.601 cm
+	Width 	 21.568 cm
+	Height 	 62.601 cm
+World X,Y,Z	0.00 cm, 0.00 cm, 0.00 cm
+Center of Mass	0.015 cm, 0.196 cm, -0.028 cm
+
+Moment of Inertia at Center of Mass   (g cm^2)
+	Ixx = 6.609E+04
+	Ixy = 27.551
+	Ixz = 1185.734
+	Iyx = 27.551
+	Iyy = 1.159E+05
+	Iyz = -41.584
+	Izx = 1185.734
+	Izy = -41.584
+	Izz = 6.610E+04
+
+Moment of Inertia at Origin   (g cm^2)
+	Ixx = 6.612E+04
+	Ixy = 25.22
+	Ixz = 1186.064
+	Iyx = 25.22
+	Iyy = 1.159E+05
+	Iyz = -37.251
+	Izx = 1186.064
+	Izy = -37.251
+	Izz = 6.614E+04
