@@ -29,7 +29,7 @@ Kthrust2 = 0.0007326;
 Mtau = (1/44.22);
 Ku = 515.5*Mtau;
 
-%% Air resistance damping coeeficients
+%% Air resistance damping coeficients
 
 Dxx = 0.01212;
 Dyy = 0.01212;
