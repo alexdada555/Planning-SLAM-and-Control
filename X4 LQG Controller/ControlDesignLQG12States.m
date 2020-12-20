@@ -87,7 +87,10 @@ C = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
      0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0];
      
 % D = 4x4 matrix
-D = 0;
+D = [0, 0, 0, 0;
+     0, 0, 0, 0;
+     0, 0, 0, 0;
+     0, 0, 0, 0];
 
 %% Discrete-Time System
 
@@ -159,6 +162,7 @@ Ldt = dlqe(Adt,Gdt,Cr,Rw,Rv);
 %sys4kf = ss(Adt,Bdt,Cy,Dy,T);
 %[kalm,Ldt] = kalman(sys4kf,Rw,Rv);  
 
+
 %%  Dynamic Simulation
 
 Time = 50;
@@ -210,9 +214,9 @@ for k = 2:kT-1
     end
     
     %%Estimation
-    Xest(:,k) = Adt*Xest(:,k-1) + Bdt*(U(:,k-1)-U_e); % No KF Linear Prediction   
+%    Xest(:,k) = Adt*Xest(:,k-1) + Bdt*(U(:,k-1)-U_e); % No KF Linear Prediction   
      
-%    Xest(:,k) = Xreal([5,6,7,8,9,10,11,12,13:16],k);  % No KF Non Linear Prediction
+    Xest(:,k) = Xreal([5,6,7,8,9,10,11,12,13:16],k);  % No KF Non Linear Prediction
 
     Y(:,k) = Xreal([5,7,9,11],k);
 %    xkf = [0;0;0;0;Xest(:,k-1)];
@@ -233,12 +237,12 @@ for k = 2:kT-1
     U(:,k) = min(800, max(0, U_e - [Kdt,Kidt]*[Xest(:,k); Xe(:,k)])); % Constraint Saturation 
     
     %Simulation    
-%    t_span = [0,T];
-%    xode = ode45(@(t,X) Quad_Dynamics(t,X,U(:,k)),t_span,Xreal(:,k)); % Runge-Kutta Integration Nonlinear Dynamics
-%    Xreal(:,k+1) = xode.y(:,end);
-    t=t_span;
-    [dX] = Quad_Dynamics(t,Xreal(:,k),U(:,k)); % Forward Euler Integration Nonlinear Dynamics
-    Xreal(:,k+1) = Xreal(:,k)+T*dX;
+    t_span = [0,T];
+    xode = ode45(@(t,X) Quad_Dynamics(t,X,U(:,k)),t_span,Xreal(:,k)); % Runge-Kutta Integration Nonlinear Dynamics
+    Xreal(:,k+1) = xode.y(:,end);
+%    t=t_span;
+%    [dX] = Quad_Dynamics(t,Xreal(:,k),U(:,k)); % Forward Euler Integration Nonlinear Dynamics
+%    Xreal(:,k+1) = Xreal(:,k) + T*dX;
 
 %    X(:,k+1) = Adt*X(:,k) + Bdt*U(:,k);  % Fully Linear Dynamics
 end
@@ -310,12 +314,21 @@ ylabel('Micro Seconds(ms)')
 % grid on
 % title('Closed-Loop Eigenvalues')
 
+
 %% PRINT TO CONFIGURATION FILES
 
-%K = round([Kdt,Kidt],2);
+dlmwrite ("Adt.txt", Adt,',', 0, 0)
 
-%writematrix(round(Kdt,2),'config.txt','Delimiter','comma')
+dlmwrite ("Bdt.txt", Bdt,',', 0, 0)
 
-%writematrix(round(Kidt,2),'config2.txt','Delimiter','comma')
+dlmwrite ("Cdt.txt", Cdt,',', 0, 0)
 
-%writematrix(round(Ldt,2),'config3.txt','Delimiter','comma')
+dlmwrite ("Ddt.txt", Ddt,',', 0, 0)
+
+dlmwrite ("Kdt.txt", Kdt,',', 0, 0)
+
+dlmwrite ("Kidt.txt", Kidt,',', 0, 0)
+
+dlmwrite ("Ldt.txt", Ldt,',', 0, 0)
+
+dlmwrite ("U_e.txt", U_e,',', 0, 0)

@@ -123,7 +123,7 @@ r = 4;                              # number of reference inputs
 n = A[0].size;                      # number of states
 q = 4;                              # number of controlled outputs
 
-Dr = np.zeros((q,4));
+Dr = np.zeros((q,4))
 
 num = np.concatenate((Adt, np.zeros((n,r))),axis=1)
 dnum = np.concatenate(((-Cr*Adt), np.eye(q)),axis=1)
