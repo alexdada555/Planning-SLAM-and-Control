@@ -12,6 +12,7 @@ from scipy.integrate import solve_ivp
 import Linear_Quadratic_Gaussian as lqg
 import AStar as AS
 import Quad_Dynamics as QD
+import Quad_Dynamics2 as QD2
 
 def main():
     '''
@@ -22,33 +23,39 @@ def main():
     print(__file__ + " start!!")
     
     # start and goal position
-    sx = 0.0  # [m]
-    sy = 0.0  # [m]
+    sx = -5.0  # [m]
+    sy = -5.0  # [m]
     gx = 55.0  # [m]
-    gy = 55.0  # [m]
+    gy = 0.0  # [m]
     grid_size = 2.0  # [m]
-    robot_radius = 1.0  # [m]
+    robot_radius = 4.0  # [m]
     
     # set obstacle positions
     ox, oy = [], []
-    for i in range(-10, 60):
+    for i in range(-10, 60): #Bottom
         ox.append(i)
         oy.append(-10.0)
-    for i in range(-10, 60):
+    for i in range(-10, 60): #Right
         ox.append(60.0)
         oy.append(i)
-    for i in range(-10, 61):
+    for i in range(-10, 61): #Top
         ox.append(i)
         oy.append(60.0)
-    for i in range(-10, 61):
+    for i in range(-10, 61): #Left
         ox.append(-10.0)
         oy.append(i)
-    for i in range(-10, 40):
-        ox.append(20.0)
+    for i in range(-10, 40): #Wall 1
+        ox.append(10.0)
         oy.append(i)
-    for i in range(0, 40):
-        ox.append(40.0)
+    for i in range(0, 50): #Wall 2
+        ox.append(25.0)
         oy.append(60.0 - i)
+    #for i in range(-10, 40):
+    #    ox.append(20.0)
+    #    oy.append(i)
+    for i in range(-10, 50): #Wall 3
+        ox.append(40.0)
+        oy.append(i)
     
     if show_animation:  # pragma: no cover
         plt.plot(ox, oy, "ok")
@@ -70,7 +77,7 @@ def main():
         plt.pause(0.001)
         #plt.show()
     '''
-    # Import Config Files
+    # Import Control Config Files
     Adt = np.loadtxt("Adt.txt", delimiter=",")
     Bdt = np.loadtxt("Bdt.txt", delimiter=",")
     Cdt = np.loadtxt("Cdt.txt", delimiter=",")
@@ -82,73 +89,101 @@ def main():
     
     # Control Variables
     T = 0.01
-    Time = 50
+    Time = 100
     kT = round(Time/T)
     
-    X = np.zeros((Adt.shape[0],kT))
-    Xreal = np.zeros((Adt.shape[0]+Bdt.shape[1],kT))
+    X = np.zeros((Adt.shape[0],1))
+    prevX = np.zeros((Adt.shape[0],1))
+    Xreal = np.zeros((Adt.shape[0]+Bdt.shape[1],1))
+    Xrealprev = np.zeros((Adt.shape[0]+Bdt.shape[1],1))
     dX = np.zeros((Adt.shape[0]+Bdt.shape[1],1))
     
-    Ref = np.zeros((4,kT))
-    Y = np.zeros((4,kT))
-    U = np.zeros((Bdt.shape[1],kT))
+    Ref = np.zeros((4,1))
+    Y = np.zeros((4,1))
+    U = np.zeros((Bdt.shape[1],1))
+    prevU = np.zeros((Bdt.shape[1],1))
+    
+    Xplot = np.zeros((Adt.shape[0],kT))
+    Xrealplot = np.zeros((Adt.shape[0]+Bdt.shape[1],kT))
+    Refplot = np.zeros((4,kT))
+    Yplot = np.zeros((4,kT))
+    Uplot = np.zeros((Bdt.shape[1],kT))
     
     t = np.arange(0.0,kT)*T
     
     # Initialise LQG Class
-    LQG = lqg.LQG(Adt,Bdt,Cdt,Ddt,Kdt,Kidt,Ldt,U_e,kT,T)
+    LQG = lqg.LQG(Adt,Bdt,Cdt,Ddt,Kdt,Kidt,Ldt,U_e)
     
     # Simulation
-    for k in range(1,kT-1):
+    for k in range(0,kT):
+
+        if (k == int(10/T)):
+            Ref[0,0] = 1
+        if (k == int(15/T)):
+            Ref[1,0] = 30*math.pi/180
+        if (k == int(20/T)):
+            Ref[1,0] = 0
+        if (k == int(25/T)):
+            Ref[2,0] = 30*math.pi/180
+        if (k == int(30/T)):
+            Ref[2,0] = 0
+        if (k == int(40/T)):
+            Ref[3,0] = 90*math.pi/180
         
-        Ref[0,int(10/T):] = 1
-        Ref[1,int(15/T):] = 30*math.pi/180
-        Ref[1,int(20/T):] = 0
-        Ref[2,int(25/T):] = 30*math.pi/180
-        Ref[2,int(30/T):] = 0
-        Ref[3,int(40/T):] = 90*math.pi/180
+        #Y = Xreal[[4,6,8,10]].reshape((4,1))
+        Y = X[[0,2,4,6]]
         
-        Y[:,k] = Xreal[[4,6,8,10],k]
-        #Y[:,k] = X[[0,2,4,6],k]
+        U = LQG.calculate(prevU,Y,Ref,True)
         
-        U[:,k] = LQG.calculate(U,Y,Ref,k)
+        X = Adt @ X + Bdt @ U  # Fully Linear Dynamics
         
-        #dX = QD.Quad_Dynamics(Xreal[:,k],U[:,k]) # Forward Euler Integration Nonlinear Dynamics
-        #Xreal[:,k+1] = Xreal[:,k] + T*dX.T
+        #dX = QD2.Quad_Dynamics(k,Xreal[:].reshape(16),U[:].reshape(4)) # Forward Euler Integration Nonlinear Dynamics
+        #print(Xreal[:].shape)
+        #Xreal[:] = Xreal[:] + T*dX[:].reshape((16,1))
         
-        #Xy = odeint(QD.Quad_Dynamics,k,Xreal[:,k],args=(U[:,k],))
+        #Xy = odeint(QD.Quad_Dynamics,k,Xreal[:],args=(U[:],))
         
-        Xy = solve_ivp(QD.Quad_Dynamics,(0,k),Xreal[:,k],method='RK23',vectorized=True,args=(U[:,k],))
-        #print(Xy.y)
-        Xreal[:,k+1] = Xy.y[:,1]
+        #Xy = solve_ivp(QD2.Quad_Dynamics,(0,1),Xreal[:].reshape(16),method='RK45',vectorized=True,args=(U[:],))
+        #Xreal = Xy.y[:,1]
+        #Xrealprev = Xreal
+
+        prevU = U
         
-        #Xreal[:,k+1] = rungeKutta(T,Xreal[:,k],U[:,k])
-        
-        #X[:,k+1] = Adt @ X[:,k] + Bdt @ U[:,k]  # Fully Linear Dynamics
+        Refplot[:,k] = Ref[:,0]
+        Yplot[:,k] = Y[:,0]
+        #Yplot[:,k] = Y[:].reshape(4)
+        Uplot[:,k] = U[:,0]
+        Xplot[:,k] = X[:,0]
+        #Xrealplot[:,k] = Xreal[:]
         
     # Plots
     t = np.arange(0.0,kT)*T
-    '''
+    
     fig, ax = plt.subplots()
-    ax.plot(t,X[0,:])
+    ax.plot(t,Xplot[0,:])
+    ax.plot(t,Refplot[0,:])
     ax.grid(True)
     ax.set_title('z')
     
     fig2, ax2 = plt.subplots()
-    ax2.plot(t,X[2,:]*180/math.pi)
+    ax2.plot(t,Xplot[2,:]*180/math.pi)
+    ax2.plot(t,Refplot[1,:]*180/math.pi)
+    ax2.plot(t,Xplot[4,:]*180/math.pi)
+    ax2.plot(t,Refplot[2,:]*180/math.pi)
+    ax2.plot(t,Xplot[6,:]*180/math.pi)
+    ax2.plot(t,Refplot[3,:]*180/math.pi)
     ax2.grid(True)
     ax2.set_title('phi')
-    
+
     fig3, ax3 = plt.subplots()
-    ax3.plot(t,X[4,:]*180/math.pi)
+    ax3.plot(t,Uplot[0,:])
+    ax3.plot(t,Uplot[1,:])
+    ax3.plot(t,Uplot[2,:])
+    ax3.plot(t,Uplot[3,:])
     ax3.grid(True)
-    ax3.set_title('theta')
+    ax3.set_title('U')
     
-    fig4, ax4 = plt.subplots()
-    ax4.plot(t,X[6,:]*180/math.pi)
-    ax4.grid(True)
-    ax4.set_title('psi')
-    
+    '''
     fig5, ax5 = plt.subplots()
     circle = plt.Circle((5,5),radius=2,color="red")
     rectangle = plt.Rectangle((10,10),width=2,height=4,color="red")
@@ -157,7 +192,7 @@ def main():
     plt.axis("scaled")
     ax5.grid(True)
     ax5.set_title('Shapes')
-    '''
+    
     
     fig6, ax6 = plt.subplots()
     ax6.plot(t,Xreal[0,:])
@@ -188,7 +223,7 @@ def main():
     ax11.plot(t,Xreal[10,:]*180/math.pi)
     ax11.grid(True)
     ax11.set_title('psi')
-    
+    '''
     plt.show()
     
 if __name__ == '__main__':

@@ -162,7 +162,7 @@ Ldt = dlqe(Adt,Gdt,Cr,Rw,Rv);
 %sys4kf = ss(Adt,Bdt,Cy,Dy,T);
 %[kalm,Ldt] = kalman(sys4kf,Rw,Rv);  
 
-
+%{
 %%  Dynamic Simulation
 
 Time = 50;
@@ -305,6 +305,7 @@ legend('U1','U2','U3','U4')
 title('Inputs PWM  Signal')
 xlabel('Time(s)')
 ylabel('Micro Seconds(ms)')
+%}
 
 % Cpoles = eig(Adtaug - (Bdtaug*[Kdt,Kidt]));
 % % System Unstable

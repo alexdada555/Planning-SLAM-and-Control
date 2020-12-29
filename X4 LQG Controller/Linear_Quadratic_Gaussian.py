@@ -3,7 +3,7 @@ import math
 
 class LQG:
 
-    def __init__(self,Adt,Bdt,Cdt,Ddt,Kdt,Kidt,Ldt,U_e,kT,T):
+    def __init__(self,Adt,Bdt,Cdt,Ddt,Kdt,Kidt,Ldt,U_e):
 
         self.Adt = Adt
         self.Bdt = Bdt
@@ -12,29 +12,46 @@ class LQG:
         self.Kdt = Kdt
         self.Kidt = Kidt
         self.Ldt = Ldt
-        self.U_e = U_e
-        self.kT = kT
-        self.T = T
+        self.U_e = U_e[:].reshape(4,1)
         
-        self.Xest = np.zeros((self.Adt.shape[0],self.kT))
-        self.U = np.zeros((self.Bdt.shape[1],self.kT))
-        self.Xe = np.zeros((self.Cdt.shape[0],self.kT))
-        self.Y = np.zeros((self.Cdt.shape[0],self.kT))
-        self.e = np.zeros((self.Cdt.shape[0],self.kT))
-        
-        
-    def calculate(self,U,Y,Ref,k):
-        
-        self.Y[:,k] = Y[:,k]
-        self.U[:,k-1] = U[:,k-1]
-        
-        self.Xest[:,k] = self.Adt @ self.Xest[:,k-1] + self.Bdt @ self.U[:,k-1] # KF Linear Prediction
-        self.e[:,k] = self.Y[:,k] - self.Xest[[0,2,4,6],k]
-        self.Xest[:,k] = self.Xest[:,k] + self.Ldt @ self.e[:,k]
-        
-        self.Xe[:,k] = self.Xe[:,k-1] + (Ref[:,k] - self.Xest[[0,2,4,6],k]) # Integrator
-        self.U[:,k] = self.U_e - (self.Kdt @ self.Xest[:,k]) - (self.Kidt @ self.Xe[:,k])
+        self.U = np.zeros((self.Bdt.shape[1],1))
+        self.prevU = np.zeros((self.Bdt.shape[1],1))
 
-        return self.U[:,k]
+        self.Xest = np.zeros((self.Adt.shape[0],1))
+        self.prevXest = np.zeros((self.Adt.shape[0],1))
+        
+        self.Xe = np.zeros((self.Cdt.shape[0],1))
+        self.prevXe = np.zeros((self.Cdt.shape[0],1))
+
+        self.Ref = np.zeros((self.Cdt.shape[0],1))
+        self.Y = np.zeros((self.Cdt.shape[0],1))
+        self.e = np.zeros((self.Cdt.shape[0],1))
+        
+        
+    def calculate(self,prevU,Y,Ref,Linear):
+        
+        self.Y = Y[:]
+        self.prevU = prevU[:]
+        self.Ref = Ref[:]
+
+        if Linear == True:
+            self.Xest = self.Adt @ self.prevXest + self.Bdt @ (self.prevU) # KF Linear Prediction
+            self.e = self.Y - self.Xest[[0,2,4,6]]
+            self.Xest = self.Xest + self.Ldt @ self.e
+        
+            self.Xe = self.prevXe + (self.Ref - self.Xest[[0,2,4,6]]) # Integrator
+            self.U = - (self.Kdt @ self.Xest) - (self.Kidt @ self.Xe)
+        else:
+            self.Xest = self.Adt @ self.prevXest + self.Bdt @ (self.prevU-self.U_e) # KF Linear Prediction
+            self.e = self.Y - self.Xest[[0,2,4,6]]
+            self.Xest = self.Xest + self.Ldt @ self.e
+        
+            self.Xe = self.prevXe + (self.Ref - self.Xest[[0,2,4,6]]) # Integrator
+            self.U =  self.U_e - (self.Kdt @ self.Xest) - (self.Kidt @ self.Xe)
+            
+        self.prevXe = self.Xe
+        self.prevXest = self.Xest
+        
+        return self.U[:]
 
     
