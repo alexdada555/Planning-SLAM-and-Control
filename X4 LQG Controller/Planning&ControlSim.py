@@ -15,7 +15,7 @@ import Quad_Dynamics as QD
 import Quad_Dynamics2 as QD2
 
 def main():
-    '''
+    
     #Path Planning
     
     show_animation = True
@@ -76,7 +76,7 @@ def main():
         plt.plot(rx, ry, "-r")
         plt.pause(0.001)
         #plt.show()
-    '''
+    
     # Import Control Config Files
     Adt = np.loadtxt("Adt.txt", delimiter=",")
     Bdt = np.loadtxt("Bdt.txt", delimiter=",")
@@ -173,7 +173,7 @@ def main():
     ax2.plot(t,Xplot[6,:]*180/math.pi)
     ax2.plot(t,Refplot[3,:]*180/math.pi)
     ax2.grid(True)
-    ax2.set_title('phi')
+    ax2.set_title('Att')
 
     fig3, ax3 = plt.subplots()
     ax3.plot(t,Uplot[0,:])
