@@ -54,12 +54,11 @@ DAC =  3.3/((2^12)-1); % 12-bit DAC Quantization
 
 %% Define Linear Continuous-Time Multirotor Dynamics: x_dot = Ax + Bu, y = Cx + Du         
 
-% A =  16x16 matrix
-     
+% A = 16x16 matrix
 A = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
-     0, 0, 0, 0, 0, 0, 0, 0, Fsum, 0, 0, 0, 0, 0, 0, 0;
+     0, 0, 0, 0, 0, 0, 0, 0, g, 0, 0, 0, 0, 0, 0, 0;
      0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
-     0, 0, 0, 0, 0, 0, Fsum, 0, 0, 0, 0, 0, 0, 0, 0, 0;
+     0, 0, 0, 0, 0, 0, -g, 0, 0, 0, 0, 0, 0, 0, 0, 0;
      0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2*Kthrust*W_e(1)/M, 2*Kthrust*W_e(2)/M, 2*Kthrust*W_e(3)/M, 2*Kthrust*W_e(4)/M;
      0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0;
@@ -91,18 +90,14 @@ B = [0, 0, 0, 0;
      0, 0, Ku/Mtau, 0;
      0, 0, 0, Ku/Mtau];
 
-% C = 6x16 matrix
+% C = 4x16 matrix
 C = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
      0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
      0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
-     0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0;
-     0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0;
      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0];
      
-% D = 6x4 matrix
+% D = 4x4 matrix
 D = [0, 0, 0, 0;
-     0, 0, 0, 0;
-     0, 0, 0, 0;
      0, 0, 0, 0;
      0, 0, 0, 0;
      0, 0, 0, 0];
@@ -137,29 +132,29 @@ obs = rank(obsv(Adt,Cdt));
 Cr = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
       0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
       0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
-      0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0;
-      0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0;
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0];   
 
-r = 6;                                % number of reference inputs
+u = size(B,2);                        % number of controlled inputs
+r = size(Cr,1);                       % number of reference inputs
 n = size(A,2);                        % number of states
 q = size(Cr,1);                       % number of controlled outputs
 
-Dr = zeros(q,4);
+Dr = zeros(q,u);
 
 Adtaug = [Adt zeros(n,r); 
           -Cr*Adt eye(q,r)];
-   
-Bdtaug = [Bdt; -Cr*Bdt];
+
+Bdtaug = [Bdt; 
+        -Cr*Bdt];
 
 Cdtaug = [C zeros(r,r)];
 
 %% Discrete-Time Full State-Feedback Control
 % State feedback control design with integral control via state augmentation
-% X Y Z Phi Theta Psi are controlled outputs
+% X Y Z Psi are controlled outputs
 
-Q = diag([2000,0,2000,0,2000,0,700,0,700,0,5000,0,0,0,0,0,1,1,5,20,20,0.4]); % State penalty
-R = eye(4,4)*(10^-3);  % Control penalty
+Q = diag([5000,0,5000,0,5000,0,1000,0,1000,0,5000,0,0,0,0,0,2,2,5,0.4]); % State penalty
+R = eye(4,4)*(10^-4);  % Control penalty
 
 Kdtaug = dlqr(Adtaug,Bdtaug,Q,R); % DT State-Feedback Controller Gains
 Kdt = Kdtaug(:,1:n);        % LQR Gains
@@ -169,10 +164,10 @@ Kidt = Kdtaug(:,n+1:end);  % Integral Gains
 
 Gdt = 1e-1*eye(n);
 
-Rw = diag([0.5,0.5,0.5,0.5,0.5,0.5,0.01,0.1,0.01,0.01,0.01,0.01,10^-10,10^-10,10^-10,10^-10]);   % Process noise covariance matrix
-Rv = diag([500,500,500,10^-5,10^-5,10^-5]);     % Measurement noise covariance matrix Note: use low gausian noice for Rv
+Rw = diag([1,1,1,1,0.5,0.5,0.01,0.1,0.01,0.1,0.01,0.1,10^-10,10^-10,10^-10,10^-10]);   % Process noise covariance matrix
+Rv = diag([1,1,500,10^-5]);     % Measurement noise covariance matrix Note: use low gausian noice for Rv
 
-Ldt = dlqe(Adt,Gdt,Cr,Rw,Rv);
+Ldt = dlqe(Adt,Gdt,Cdt,Rw,Rv);
 
 %Hdt = zeros(size(Cy,1),size(Gdt,2)); % No process noise on measurements
 %sys4kf = ss(Adt,[Bdt Gdt],Cy,[Dy Hdt],T);
@@ -180,22 +175,22 @@ Ldt = dlqe(Adt,Gdt,Cr,Rw,Rv);
 %[kalm,Ldt] = kalman(sys4kf,Rw,Rv);  
 
 
-%%  Dynamic Simulation
+%% Dynamic Simulation
 
-Time = 50;
+Time = 60;
 kT = round(Time/T);
 
 X = zeros(16,kT);
 
 Xreal = zeros(16,kT);
-Xe = zeros(6,kT);
-Y = zeros(6,kT);
-e = zeros(6,kT);
+Xe = zeros(4,kT);
+Y = zeros(4,kT);
+e = zeros(4,kT);
 
 U = ones(4,kT);
 U(:,1) = U_e;
 
-Ref = [0;0;0;0;0;0];
+Ref = [0;0;0;0];
 x_ini = [0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0];
 
 X(:,2) = x_ini;
@@ -212,22 +207,28 @@ for k = 2:kT-1
     
     %Reference Setting
     if k == 10/T
-        Ref(3) = 1;
+        Ref(1) = 1;
     end
     if k == 15/T
-        Ref(4) = 30*pi/180;
+        Ref(1) = 0;
     end
     if k == 20/T
-        Ref(4) = 0;
+        Ref(2) = 1;
     end
     if k == 25/T
-        Ref(5) = 30*pi/180;
+        Ref(2) = 0;
     end
     if k == 30/T
-        Ref(5) = 0;
+        Ref(3) = 1;
+    end
+    if k == 35/T
+        Ref(3) = 2;
     end
     if k == 40/T
-        Ref(6) = 90*pi/180;
+        Ref(4) = 90*pi/180;
+    end
+    if k == 45/T
+        Ref(4) = 0*pi/180;
     end
     
     %Estimation
@@ -235,21 +236,20 @@ for k = 2:kT-1
      
     Xest(:,k) = Xreal(:,k);  % No KF Non Linear Prediction
 
-    #Y(:,k) = Xreal([1,3,5,7,9,11],k);
+%    Y(:,k) = Xreal([1,3,5,11],k);
 %    xkf = [Xest(:,k-1)];
 %    xode = ode45(@(t,X) Quad_Dynamics(t,X,U(:,k-1)),t_span,xkf); % Nonlinear Prediction
 %    Xest(:,k) = xode.y(:,end);
-
-    #e(:,k) = [Y(:,k) - Xest([1,3,5,7,9,11],k)];
-    #Xest(:,k) = Xest(:,k) + Ldt*e(:,k);
+%    e(:,k) = [Y(:,k) - Xest([1,3,5,11],k)];
+%    Xest(:,k) = Xest(:,k) + Ldt*e(:,k);
     
-%    Y(:,k) = Xreal([1,3,5,7,9,11],k);
+%    Y(:,k) = Xreal([1,3,5,11],k);
 %    Xest(:,k) = Adt*Xest(:,k-1) + Bdt*(U(:,k-1)-U_e);   % Linear Prediction
-%    e(:,k) = [Y(:,k) - Xest([1,3,5,7,9,11],k)];
+%    e(:,k) = [Y(:,k) - Xest([1,3,5,11],k)];
 %    Xest(:,k) = Xest(:,k) + Ldt*e(:,k);
    
     %Control
-    Xe(:,k) = Xe(:,k-1) + (Ref - Xest([1,3,5,7,9,11],k));   % Integrator 
+    Xe(:,k) = Xe(:,k-1) + (Ref - Xest([1,3,5,11],k));   % Integrator 
     %U(:,k) =  U_e - [Kdt,Kidt]*[Xest(:,k); Xe(:,k)];
     U(:,k) = min(800, max(0, U_e - [Kdt,Kidt]*[Xest(:,k); Xe(:,k)])); % Constraint Saturation 
     
@@ -310,9 +310,9 @@ xlabel('Time(s)')
 ylabel('Error meters(m)')
 
 subplot(2,1,2)
-plot(t,e([4,5,6],:).*Rad2Deg)
-legend('e_\phi','e_\theta','e_\psi')
-title('Attitude prediction error')
+plot(t,e(4,:)*Rad2Deg(1))
+legend('e_\phi')
+title('Hedding prediction error')
 xlabel('Time(s)')
 ylabel('Error degrees(d)')
 

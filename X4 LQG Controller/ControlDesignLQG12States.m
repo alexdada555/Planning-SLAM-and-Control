@@ -152,8 +152,8 @@ Kidt = Kdtaug(:,n+1:end);  % Integral Gains
 
 Gdt = 1e-1*eye(n);
 
-Rw = diag([0.5,0.5,0.01,0.1,0.01,0.01,0.01,0.01,10^-10,10^-10,10^-10,10^-10]);   % Process noise covariance matrix
-Rv = diag([500,10^-5,10^-5,10^-5]);     % Measurement noise covariance matrix Note: use low gausian noice for Rv
+Rw = diag([0.01,0.01,0.01,0.1,0.01,0.01,0.01,0.01,10^-10,10^-10,10^-10,10^-10]);   % Process noise covariance matrix
+Rv = diag([10^-5,10^-5,10^-5,10^-5]);     % Measurement noise covariance matrix Note: use low gausian noice for Rv
 
 Ldt = dlqe(Adt,Gdt,Cr,Rw,Rv);
 
@@ -214,22 +214,21 @@ for k = 2:kT-1
     end
     
     %Estimation
-    Xest(:,k) = Adt*Xest(:,k-1) + Bdt*(U(:,k-1)-U_e); % No KF Linear Prediction   
+%    Xest(:,k) = Adt*Xest(:,k-1) + Bdt*(U(:,k-1)-U_e); % No KF Linear Prediction   
      
 %    Xest(:,k) = Xreal([5,6,7,8,9,10,11,12,13:16],k);  % No KF Non Linear Prediction
 
-    Y(:,k) = Xreal([5,7,9,11],k);
+%    Y(:,k) = Xreal([5,7,9,11],k);
 %    xkf = [0;0;0;0;Xest(:,k-1)];
 %    xode = ode45(@(t,X) Quad_Dynamics(t,X,U(:,k-1)),t_span,xkf); % Nonlinear Prediction
 %    Xest(:,k) = xode.y(5:16,end);
-
-    e(:,k) = [Y(:,k) - Xest([1,3,5,7],k)];
-    Xest(:,k) = Xest(:,k) + Ldt*e(:,k);
-    
-%    Y(:,k) = Xreal([5,7,9,11],k);
-%    Xest(:,k) = Adt*Xest(:,k-1) + Bdt*(U(:,k-1)-U_e);   % Linear Prediction
 %    e(:,k) = [Y(:,k) - Xest([1,3,5,7],k)];
 %    Xest(:,k) = Xest(:,k) + Ldt*e(:,k);
+    
+    Y(:,k) = Xreal([5,7,9,11],k);
+    Xest(:,k) = Adt*Xest(:,k-1) + Bdt*(U(:,k-1)-U_e);   % Linear Prediction
+    e(:,k) = [Y(:,k) - Xest([1,3,5,7],k)];
+    Xest(:,k) = Xest(:,k) + Ldt*e(:,k);
    
     %Control
     Xe(:,k) = Xe(:,k-1) + (Ref - Xest([1,3,5,7],k));   % Integrator 

@@ -7,8 +7,8 @@ dX = np.zeros((16,1)).reshape(16)
 
 # Motor Forces and Torques
 
-F = np.zeros((4,1))
-T = np.zeros((4,1))
+F = np.zeros((4,1)).reshape(4)
+T = np.zeros((4,1)).reshape(4)
 
 # Mass of the Multirotor in Kilograms as taken from the CAD
 
@@ -43,7 +43,7 @@ Dzz = 0.0648
 def Quad_Dynamics(t,X,U):                    
     
     [x,xdot,y,ydot,z,zdot,phi,p,theta,q,psi,r,w1,w2,w3,w4] = X 
-        
+       
     # Motor Dynamics: dX = [w1dot w2dot w3dot w4dot], U = Pulse Width of the pwm signal 0-1000%
     
     dX[12] = -(1/Mtau)*w1 + (Ku/Mtau)*U[0]
@@ -53,24 +53,24 @@ def Quad_Dynamics(t,X,U):
     
     # Motor Forces and Torques
     
-    F[0]= Kthrust*math.pow(w1,2) + Kthrust2*w1
-    F[1]= Kthrust*math.pow(w2,2) + Kthrust2*w2
-    F[2]= Kthrust*math.pow(w3,2) + Kthrust2*w3
-    F[3]= Kthrust*math.pow(w4,2) + Kthrust2*w4
+    F[0] = Kthrust*math.pow(w1,2) + Kthrust2*w1
+    F[1] = Kthrust*math.pow(w2,2) + Kthrust2*w2
+    F[2] = Kthrust*math.pow(w3,2) + Kthrust2*w3
+    F[3] = Kthrust*math.pow(w4,2) + Kthrust2*w4
     
-    T[0]= -Ktau*math.pow(w1,2)
-    T[1]=  Ktau*math.pow(w2,2)
-    T[2]=  Ktau*math.pow(w3,2)
-    T[3]= -Ktau*math.pow(w4,2)
+    T[0] = -Ktau*math.pow(w1,2)
+    T[1] =  Ktau*math.pow(w2,2)
+    T[2] =  Ktau*math.pow(w3,2)
+    T[3] = -Ktau*math.pow(w4,2)
     
     Fn = sum(F)
     Tn = sum(T)
     
     # First Order Direvatives dX = [xdot ydot zdot phidot thetadot psidot]
     
-    dX[0] = X[1]
-    dX[2] = X[3]
-    dX[4] = X[5]
+    dX[0] = xdot
+    dX[2] = ydot
+    dX[4] = zdot
     dX[6] = p + q*(math.sin(phi)*math.tan(theta)) + r*(math.cos(phi)*math.tan(theta))
     dX[8] = q*math.cos(phi) - r*math.sin(phi)
     dX[10] = q*(math.sin(phi)/math.cos(theta)) + r*(math.cos(phi)/math.cos(theta))
@@ -84,5 +84,5 @@ def Quad_Dynamics(t,X,U):
     dX[7] = (L/Ixx)*(F[0]+F[1] - F[2]+F[3]) - (((Izz-Iyy)/Ixx)*(r*q))
     dX[9] = (L/Iyy)*(F[0]+F[2] - F[1]+F[3]) - (((Izz-Ixx)/Iyy)*(p*r))
     dX[11] = Tn/Izz - (((Iyy-Ixx)/Izz)*(p*q))
-
+    
     return dX

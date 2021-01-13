@@ -12,7 +12,7 @@ class LQG:
         self.Kdt = Kdt
         self.Kidt = Kidt
         self.Ldt = Ldt
-        self.U_e = U_e[:].reshape(4,1)
+        self.U_e = U_e[:].reshape(self.Bdt.shape[1],1)
         
         self.U = np.zeros((self.Bdt.shape[1],1))
         self.prevU = np.zeros((self.Bdt.shape[1],1))
@@ -28,7 +28,7 @@ class LQG:
         self.e = np.zeros((self.Cdt.shape[0],1))
         
         
-    def calculate(self,prevU,Y,Ref,Linear):
+    def calculate(self,prevU,Y,Ref,Linear,KF):
         
         self.Y = Y[:]
         self.prevU = prevU[:]
@@ -36,17 +36,21 @@ class LQG:
 
         if Linear == True:
             self.Xest = self.Adt @ self.prevXest + self.Bdt @ (self.prevU) # KF Linear Prediction
-            self.e = self.Y - self.Xest[[0,2,4,6]]
-            self.Xest = self.Xest + self.Ldt @ self.e
+
+            if KF == True:
+                self.e = self.Y - self.Xest[[0,2,4,10]]
+                self.Xest = self.Xest + self.Ldt @ self.e
         
-            self.Xe = self.prevXe + (self.Ref - self.Xest[[0,2,4,6]]) # Integrator
+            self.Xe = self.prevXe + (self.Ref - self.Xest[[0,2,4,10]]) # Integrator
             self.U = - (self.Kdt @ self.Xest) - (self.Kidt @ self.Xe)
         else:
             self.Xest = self.Adt @ self.prevXest + self.Bdt @ (self.prevU-self.U_e) # KF Linear Prediction
-            self.e = self.Y - self.Xest[[0,2,4,6]]
-            self.Xest = self.Xest + self.Ldt @ self.e
+
+            if KF == True:
+                self.e = self.Y - self.Xest[[0,2,4,10]]
+                self.Xest = self.Xest + self.Ldt @ self.e
         
-            self.Xe = self.prevXe + (self.Ref - self.Xest[[0,2,4,6]]) # Integrator
+            self.Xe = self.prevXe + (self.Ref - self.Xest[[0,2,4,10]]) # Integrator
             self.U =  self.U_e - (self.Kdt @ self.Xest) - (self.Kidt @ self.Xe)
             
         self.prevXe = self.Xe
