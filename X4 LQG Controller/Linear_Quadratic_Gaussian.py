@@ -28,7 +28,7 @@ class LQG:
         self.e = np.zeros((self.Cdt.shape[0],1))
         
         
-    def calculate(self,prevU,Y,Ref,Linear,KF):
+    def calculate(self,prevU,Y,Ref,Linear):
         
         self.Y = Y[:]
         self.prevU = prevU[:]
@@ -36,19 +36,15 @@ class LQG:
 
         if Linear == True:
             self.Xest = self.Adt @ self.prevXest + self.Bdt @ (self.prevU) # KF Linear Prediction
-
-            if KF == True:
-                self.e = self.Y - self.Xest[[0,2,4,10]]
-                self.Xest = self.Xest + self.Ldt @ self.e
+            self.e = self.Y - self.Xest[[0,2,4,10]]
+            self.Xest = self.Xest + self.Ldt @ self.e
         
             self.Xe = self.prevXe + (self.Ref - self.Xest[[0,2,4,10]]) # Integrator
             self.U = - (self.Kdt @ self.Xest) - (self.Kidt @ self.Xe)
         else:
             self.Xest = self.Adt @ self.prevXest + self.Bdt @ (self.prevU-self.U_e) # KF Linear Prediction
-
-            if KF == True:
-                self.e = self.Y - self.Xest[[0,2,4,10]]
-                self.Xest = self.Xest + self.Ldt @ self.e
+            self.e = self.Y - self.Xest[[0,2,4,10]]
+            self.Xest = self.Xest + self.Ldt @ self.e
         
             self.Xe = self.prevXe + (self.Ref - self.Xest[[0,2,4,10]]) # Integrator
             self.U =  self.U_e - (self.Kdt @ self.Xest) - (self.Kidt @ self.Xe)

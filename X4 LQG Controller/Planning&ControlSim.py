@@ -9,18 +9,18 @@ import matplotlib.pyplot as plt
 from scipy.integrate import odeint
 from scipy.integrate import solve_ivp
 
-import Linear_Quadratic_Gaussian as lqg
 import AStar as AS
+import Linear_Quadratic_Gaussian as lqg
 import Quad_Dynamics as QD
 
 def main():
     
-    #Path Planning
+    # Path Planning
     show_animation = True
     
     print(__file__ + " start!!")
     
-    # start and goal position
+    # Start and goal position
     sx = 0.0  # [m]
     sy = 0.0  # [m]
     gx = 55.0  # [m]
@@ -28,27 +28,27 @@ def main():
     grid_size = 1.0  # [m]
     robot_radius = 4.0  # [m]
     
-    # set obstacle positions
+    # Set obstacle positions
     ox, oy = [], []
-    for i in range(-10, 60): #Bottom
+    for i in range(-10, 60): # Bottom Wall
         ox.append(i)
         oy.append(-10.0)
-    for i in range(-10, 60): #Right
+    for i in range(-10, 60): # Right Wall
         ox.append(60.0)
         oy.append(i)
-    for i in range(-10, 61): #Top
+    for i in range(-10, 61): # Top Wall
         ox.append(i)
         oy.append(60.0)
-    for i in range(-10, 61): #Left
+    for i in range(-10, 61): # Left Wall
         ox.append(-10.0)
         oy.append(i)
-    for i in range(-10, 40): #Wall 1
+    for i in range(-10, 40): # Mid Wall 1
         ox.append(10.0)
         oy.append(i)
-    for i in range(0, 50): #Wall 2
+    for i in range(0, 50): # Mid Wall 2
         ox.append(25.0)
         oy.append(60.0 - i)
-    for i in range(-10, 50): #Wall 3
+    for i in range(-10, 50): # Mid Wall 3
         ox.append(40.0)
         oy.append(i)
             
@@ -71,7 +71,7 @@ def main():
     rx, ry = a_star.planning(sx, sy, gx, gy)
     
     if show_animation:  # pragma: no cover
-        plt.plot(rx, ry, ".y")
+        plt.plot(rx, ry, "-y")
         plt.pause(0.001)
         #plt.show()
     
@@ -90,6 +90,7 @@ def main():
     sFactor = 1
     Time = (len(rx) - 1)/sFactor
     kT = round(Time/T)
+    t = np.arange(0.0,kT)*T
     
     X = np.zeros((Adt.shape[0],1))
     prevX = np.zeros((Adt.shape[0],1))
@@ -107,33 +108,35 @@ def main():
     Yplot = np.zeros((4,kT))
     Uplot = np.zeros((Bdt.shape[1],kT))
     
-    t = np.arange(0.0,kT)*T
-    
     # Initialise LQG Class
     LQG = lqg.LQG(Adt,Bdt,Cdt,Ddt,Kdt,Kidt,Ldt,U_e)
     
-    #print(rx[100])
     # Simulation
     for k in range(0,kT):
-        
+
+        # Track x and y path positions keep altitude to 1.5m
         Ref[0,0] = rx[len(rx)-int(k*sFactor/(T*10000))-1]
         Ref[1,0] = ry[len(ry)-int(k*sFactor/(T*10000))-1]
-        Ref[2,0] = 1
-        
-        E_x = Ref[0,0] - Xplot[0,k]
-        E_y = Ref[1,0] - Xplot[2,k]
+        Ref[2,0] = 1.5
+
+        # Keep heading towards goal
+        E_x = gx - X[0,0]
+        E_y = gy - X[2,0]
         targPsi = (math.pi/2) - math.atan(E_y/E_x)
-        Ref[3,0] = 0  
-        
-        #Y = Xreal[[4,6,8,10]].reshape((4,1))
+        Ref[3,0] = targPsi  
+
+        # Outputs
         Y = X[[0,2,4,10]]
+        #Y = Xreal[[4,6,8,10]].reshape((4,1))
         
-        U = LQG.calculate(prevU,Y,Ref,True,False)
+        # Pass output and previous input into LQG function, return current input
+        U = LQG.calculate(prevU,Y,Ref,True)
+
+        # Linear Dynamics Simulation
+        X = Adt @ X + Bdt @ U
         
-        X = Adt @ X + Bdt @ U  # Linear Dynamics
-        
+        # Non Linear Dynamics Simulation
         #dX = QD.Quad_Dynamics(k,Xreal[:].reshape(16),U[:].reshape(4)) # Forward Euler Integration Nonlinear Dynamics
-        #print(Xreal[:].shape)
         #Xreal[:] = Xreal[:] + T*dX[:].reshape((16,1))
         
         #Xy = odeint(QD.Quad_Dynamics,k,Xreal[:],args=(U[:],))
@@ -142,12 +145,17 @@ def main():
         #Xreal = Xy.y[:,1]
         
         prevU = U
+        
         Refplot[:,k] = Ref[:,0]
-        Yplot[:,k] = Y[:,0]
-        #Yplot[:,k] = Y[:].reshape(4)
         Uplot[:,k] = U[:,0]
+        
+        # Linear States and Outputs
+        Yplot[:,k] = Y[:,0]
         Xplot[:,k] = X[:,0]
-        #Xrealplot[:,k] = Xreal[:].reshape(16)
+        
+        # Non Linear States and Outputs
+        #Yplot[:,k] = Y[:].reshape(4)
+        #Xplot[:,k] = Xreal[:].reshape(16)
         
     # Plots
     fig, ax = plt.subplots()
@@ -180,6 +188,7 @@ def main():
     ax3.set_ylabel('Micro Seconds(ms)')
     ax3.set_title('Inputs PWM  Signal')
     
+    # Add UAV path to floor plan plot
     for k in range(0,kT):
         UAV = plt.Circle((Xplot[0,k],Xplot[2,k]),radius=1,color="red")
         ax0.add_patch(UAV)

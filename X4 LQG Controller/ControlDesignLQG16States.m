@@ -153,7 +153,7 @@ Cdtaug = [C zeros(r,r)];
 % State feedback control design with integral control via state augmentation
 % X Y Z Psi are controlled outputs
 
-Q = diag([5000,0,5000,0,5000,0,1000,0,1000,0,5000,0,0,0,0,0,2,2,5,0.4]); % State penalty
+Q = diag([5000,0,5000,0,5000,0,1000,10,1000,10,5000,0,0,0,0,0,2,2,5,0.4]); % State penalty
 R = eye(4,4)*(10^-4);  % Control penalty
 
 Kdtaug = dlqr(Adtaug,Bdtaug,Q,R); % DT State-Feedback Controller Gains
@@ -164,8 +164,8 @@ Kidt = Kdtaug(:,n+1:end);  % Integral Gains
 
 Gdt = 1e-1*eye(n);
 
-Rw = diag([1,1,1,1,0.5,0.5,0.01,0.1,0.01,0.1,0.01,0.1,10^-10,10^-10,10^-10,10^-10]);   % Process noise covariance matrix
-Rv = diag([1,1,500,10^-5]);     % Measurement noise covariance matrix Note: use low gausian noice for Rv
+Rw = diag([1,100000,1,100000,1,1,1,1000,1,1000,1,1000000,1,1,1,1]);   % Process noise covariance matrix
+Rv = diag([10^-5,10^-5,10^-5,10^-5]);     % Measurement noise covariance matrix Note: use low gausian noice for Rv
 
 Ldt = dlqe(Adt,Gdt,Cdt,Rw,Rv);
 
@@ -234,7 +234,7 @@ for k = 2:kT-1
     %Estimation
 %    Xest(:,k) = Adt*Xest(:,k-1) + Bdt*(U(:,k-1)-U_e); % No KF Linear Prediction   
      
-    Xest(:,k) = Xreal(:,k);  % No KF Non Linear Prediction
+%    Xest(:,k) = Xreal(:,k);  % No KF Non Linear Prediction
 
 %    Y(:,k) = Xreal([1,3,5,11],k);
 %    xkf = [Xest(:,k-1)];
@@ -243,10 +243,10 @@ for k = 2:kT-1
 %    e(:,k) = [Y(:,k) - Xest([1,3,5,11],k)];
 %    Xest(:,k) = Xest(:,k) + Ldt*e(:,k);
     
-%    Y(:,k) = Xreal([1,3,5,11],k);
-%    Xest(:,k) = Adt*Xest(:,k-1) + Bdt*(U(:,k-1)-U_e);   % Linear Prediction
-%    e(:,k) = [Y(:,k) - Xest([1,3,5,11],k)];
-%    Xest(:,k) = Xest(:,k) + Ldt*e(:,k);
+    Y(:,k) = Xreal([1,3,5,11],k);
+    Xest(:,k) = Adt*Xest(:,k-1) + Bdt*(U(:,k-1)-U_e);   % Linear Prediction
+    e(:,k) = [Y(:,k) - Xest([1,3,5,11],k)];
+    Xest(:,k) = Xest(:,k) + Ldt*e(:,k);
    
     %Control
     Xe(:,k) = Xe(:,k-1) + (Ref - Xest([1,3,5,11],k));   % Integrator 
@@ -324,29 +324,20 @@ xlabel('Time(s)')
 ylabel('Micro Seconds(ms)')
 
 
-% Cpoles = eig(Adtaug - (Bdtaug*[Kdt,Kidt]));
-% % System Unstable
-% 
-% figure(6)
-% plot(Cpoles(1:14),'*')
-% grid on
-% title('Closed-Loop Eigenvalues')
+Cpoles = eig(Adtaug - (Bdtaug*[Kdt,Kidt]));
+figure(6)
+plot(Cpoles(1:14),'*')
+grid on
+title('Closed-Loop Eigenvalues')
 
 
 %% PRINT TO CONFIGURATION FILES
 
 dlmwrite ("Adt.txt", Adt,',', 0, 0)
-
 dlmwrite ("Bdt.txt", Bdt,',', 0, 0)
-
 dlmwrite ("Cdt.txt", Cdt,',', 0, 0)
-
 dlmwrite ("Ddt.txt", Ddt,',', 0, 0)
-
 dlmwrite ("Kdt.txt", Kdt,',', 0, 0)
-
 dlmwrite ("Kidt.txt", Kidt,',', 0, 0)
-
 dlmwrite ("Ldt.txt", Ldt,',', 0, 0)
-
 dlmwrite ("U_e.txt", U_e,',', 0, 0)

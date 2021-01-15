@@ -165,7 +165,7 @@ Ldt = dlqe(Adt,Gdt,Cr,Rw,Rv);
 
 %%  Dynamic Simulation
 
-Time = 50;
+Time = 20;
 kT = round(Time/T);
 
 X = zeros(12,kT);
