@@ -1,4 +1,5 @@
 function [dX] = Quad_Dynamics(t,X,U)
+
 %% Mass of the Multirotor in Kilograms as taken from the CAD
 
 M = 0.857945; 
@@ -54,13 +55,6 @@ w4 = X(16);
 
 dX = zeros(16,1);
 
-%% Motor Dynamics: dX = [w1dot w2dot w3dot w4dot], U = Pulse Width of the pwm signal 0-1000%
-
-dX(13) = -(1/Mtau)*w1 + Ku*U(1);
-dX(14) = -(1/Mtau)*w2 + Ku*U(2);
-dX(15) = -(1/Mtau)*w3 + Ku*U(3);
-dX(16) = -(1/Mtau)*w4 + Ku*U(4);
-
 %% Motor Forces and Torques
 
 F = zeros(4,1);
@@ -97,5 +91,12 @@ dX(6) = g - Fn/M*(cos(phi)*cos(theta)) -(Dzz/M)*zdot;
 dX(8) = (L/Ixx)*((F(1)+F(2)) - (F(3)+F(4))) - (((Izz-Iyy)/Ixx)*(r*q)); 
 dX(10) = (L/Iyy)*((F(1)+F(3)) - (F(2)+F(4))) - (((Izz-Ixx)/Iyy)*(p*r));
 dX(12) = Tn/Izz - (((Iyy-Ixx)/Izz)*(p*q));
+
+%% Motor Dynamics: dX = [w1dot w2dot w3dot w4dot], U = Pulse Width of the pwm signal 0-1000
+
+dX(13) = -(1/Mtau)*w1 + Ku*U(1);
+dX(14) = -(1/Mtau)*w2 + Ku*U(2);
+dX(15) = -(1/Mtau)*w3 + Ku*U(3);
+dX(16) = -(1/Mtau)*w4 + Ku*U(4);
 
 end

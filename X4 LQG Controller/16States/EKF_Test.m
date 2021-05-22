@@ -5,7 +5,7 @@ format short;
 
 %% Octave Packeges
 pkg load control;
-
+pkg load optim;
 %% Mass of the Multirotor in Kilograms as taken from the CAD
 
 M = 0.857945; 
@@ -166,7 +166,7 @@ Ldt = dlqe(Adt,Gdt,Cdt,Rw,Rv);
 
 %% Dynamic Simulation
 
-Time = 1;
+Time = 60;
 kT = round(Time/T);
 
 X = zeros(16,kT);
@@ -225,10 +225,18 @@ for k = 2:kT-1
 %    e(:,k) = [Y(:,k) - Xest([1,3,5,11],k)];
 %    Xest(:,k) = Xest(:,k) + Ldt*e(:,k);
 
+    t = 0;
+    Df = jacobs (Xest(:,k-1), @(t,X) Quad_Dynamics(t,Xest(:,k-1),U(:,k-1)));
+    LdtEkf = dlqe(Df,Gdt,Cdt,Rw,Rv);
     Y(:,k) = Xreal([1,3,5,11],k);
-    Xest(:,k) = Adt*Xest(:,k-1) + Bdt*(U(:,k-1)-U_e);   % Linear Prediction
+    Xest(:,k) = Adt*Xest(:,k-1) + Bdt*(U(:,k-1)-U_e);   % Extended Kalman Prediction
     e(:,k) = [Y(:,k) - Xest([1,3,5,11],k)];
-    Xest(:,k) = Xest(:,k) + Ldt*e(:,k);
+    Xest(:,k) = Xest(:,k) + LdtEkf*e(:,k);
+    
+%    Y(:,k) = Xreal([1,3,5,11],k);
+%    Xest(:,k) = Adt*Xest(:,k-1) + Bdt*(U(:,k-1)-U_e);   % Linear Kalman Prediction
+%    e(:,k) = [Y(:,k) - Xest([1,3,5,11],k)];
+%    Xest(:,k) = Xest(:,k) + Ldt*e(:,k);
 
     %Control
     Xe(:,k) = Xe(:,k-1) + (Ref - Xest([1,3,5,11],k));   % Integrator 
