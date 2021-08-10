@@ -4,6 +4,7 @@ import time
 import math
 
 import numpy as np
+import numba
 import control.matlab as cont
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
@@ -94,8 +95,8 @@ def main():
     
     X = np.zeros((Adt.shape[0],1))
     prevX = np.zeros((Adt.shape[0],1))
-    Xreal = np.zeros((Adt.shape[0]+Bdt.shape[1],1))
-    dX = np.zeros((Adt.shape[0]+Bdt.shape[1],1))
+    Xreal = np.zeros((Adt.shape[0],1))
+    dX = np.zeros((Adt.shape[0],1))
     
     Ref = np.zeros((4,1))
     Y = np.zeros((4,1))
@@ -103,7 +104,7 @@ def main():
     prevU = np.zeros((Bdt.shape[1],1))
     
     Xplot = np.zeros((Adt.shape[0],kT))
-    Xrealplot = np.zeros((Adt.shape[0]+Bdt.shape[1],kT))
+    Xrealplot = np.zeros((Adt.shape[0],kT))
     Refplot = np.zeros((4,kT))
     Yplot = np.zeros((4,kT))
     Uplot = np.zeros((Bdt.shape[1],kT))
@@ -130,19 +131,19 @@ def main():
         #Y = Xreal[[4,6,8,10]].reshape((4,1))
         
         # Pass output and previous input into LQG function, return current input
-        U = LQG.calculate(prevU,Y,Ref,True)
+        U = LQG.calculate(prevU,Y,Ref,False)
 
         # Linear Dynamics Simulation
-        X = Adt @ X + Bdt @ U
+        #X = Adt @ X + Bdt @ U
         
         # Non Linear Dynamics Simulation
-        #dX = QD.Quad_Dynamics(k,Xreal[:].reshape(16),U[:].reshape(4)) # Forward Euler Integration Nonlinear Dynamics
-        #Xreal[:] = Xreal[:] + T*dX[:].reshape((16,1))
-        
-        #Xy = odeint(QD.Quad_Dynamics,k,Xreal[:],args=(U[:],))
-        
-        #Xy = solve_ivp(QD.Quad_Dynamics,(k-1,k),Xreal[:].reshape(16),method='RK45',vectorized=True,args=(U[:],))
-        #Xreal = Xy.y[:,1]
+        #dX = QD.Quad_Dynamics(k,Xreal[:].reshape(16,1),U[:].reshape(4,1)) # Forward Euler Integration Nonlinear Dynamics
+        #Xreal[:] = Xreal[:].reshape(16,1) + T*dX[:].reshape((16,1))
+
+        # Non Linear Dynamics Simulation
+        ode = lambda k, Xreal, U : QD.Quad_Dynamics(k,Xreal[:].reshape(16,1),U[:].reshape(4,1))
+        Xy = solve_ivp(numba.jit(ode,forceobj=True),[0,kT],Xreal[:].reshape(16),method='RK45',vectorized=True,args=(U[:],))
+        Xreal = Xy.y[:,1]
         
         prevU = U
         
@@ -150,12 +151,13 @@ def main():
         Uplot[:,k] = U[:,0]
         
         # Linear States and Outputs
-        Yplot[:,k] = Y[:,0]
-        Xplot[:,k] = X[:,0]
+        #Yplot[:,k] = Y[:,0]
+        #Xplot[:,k] = X[:,0]
         
         # Non Linear States and Outputs
-        #Yplot[:,k] = Y[:].reshape(4)
-        #Xplot[:,k] = Xreal[:].reshape(16)
+        Yplot[:,k] = Y[:].reshape(4)
+        Xplot[:,k] = Xreal[:].reshape(16)
+        #print(Xplot[0,k])
         
     # Plots
     fig, ax = plt.subplots()

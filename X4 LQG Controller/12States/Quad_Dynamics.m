@@ -1,7 +1,7 @@
 function [dX] = Quad_Dynamics(t,X,U)
 %% Mass of the Multirotor in Kilograms as taken from the CAD
 
-M = 0.857945; 
+M = 1.157685 ; 
 g = 9.81;
 
 %% Dimensions of Multirotor
@@ -10,13 +10,11 @@ L = 0.16319; % along X-axis and Y-axis Distance from left and right motor pair t
 
 %%  Mass Moment of Inertia as Taken from the CAD
 % Inertia Matrix and Diagolalisation CAD model coordinate system rotated 90 degrees about X
-
-Ixx = 1.061E+05/(1000*10000);
-Iyy = 1.061E+05/(1000*10000);
-Izz = 2.011E+05/(1000*10000);
+Ixx = 1.129E+05/(1000*10000);
+Iyy = 1.129E+05/(1000*10000);
+Izz = 2.033E+05/(1000*10000);
 
 %% Motor Thrust and Torque Constants (To be determined experimentally)
-
 Ktau =  7.708e-10 * 2;
 Kthrust =  1.812e-07;
 Kthrust2 = 0.0007326;
@@ -24,13 +22,11 @@ Mtau = (1/44.22);
 Ku = 515.5;
 
 %% Air resistance damping coeeficients
-
 Dxx = 0.01212;
 Dyy = 0.01212;
 Dzz = 0.0648;                          
 
 %% X = [x xdot y ydot z zdot phi p theta q psi r w1 w2 w3 w4]
-
 x = X(1);
 xdot = X(2);
 y = X(3);
@@ -51,18 +47,15 @@ w3 = X(15);
 w4 = X(16);
 
 %% Initialise Outputs
-
 dX = zeros(16,1);
 
 %% Motor Dynamics: dX = [w1dot w2dot w3dot w4dot], U = Pulse Width of the pwm signal 0-1000%
-
 dX(13) = -(1/Mtau)*w1 + Ku*U(1);
 dX(14) = -(1/Mtau)*w2 + Ku*U(2);
 dX(15) = -(1/Mtau)*w3 + Ku*U(3);
 dX(16) = -(1/Mtau)*w4 + Ku*U(4);
 
 %% Motor Forces and Torques
-
 F = zeros(4,1);
 T = zeros(4,1);
 
@@ -80,7 +73,6 @@ Fn = sum(F);
 Tn = sum(T);
 
 %% First Order Direvatives dX = [xdot ydot zdot phidot thetadot psidot]
-
 dX(1) = xdot;
 dX(3) = ydot;
 dX(5) = zdot;
@@ -89,7 +81,6 @@ dX(9) = q*cos(phi) - r*sin(phi);
 dX(11) = q*(sin(phi)/cos(theta)) + r*(cos(phi)/cos(theta));
 
 %% Second Order Direvatives: dX = [xddot yddot zddot pdot qdot rdot]
-
 dX(2) = Fn/M*(cos(phi)*sin(theta)*cos(psi)) + Fn/M*(sin(phi)*sin(psi)) - (Dxx/M)*xdot;
 dX(4) = Fn/M*(cos(phi)*sin(theta)*sin(psi)) - Fn/M*(sin(phi)*cos(psi)) - (Dyy/M)*ydot;
 dX(6) = g - Fn/M*(cos(phi)*cos(theta)) -(Dzz/M)*zdot;

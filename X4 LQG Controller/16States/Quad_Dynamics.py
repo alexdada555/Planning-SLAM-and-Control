@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import cmath
 
 # Initialise Outputs
 dX = np.zeros((16,1)).reshape(16)
@@ -36,12 +37,6 @@ Dzz = 0.0648
 def Quad_Dynamics(t,X,U):                    
     
     [x,xdot,y,ydot,z,zdot,phi,p,theta,q,psi,r,w1,w2,w3,w4] = X 
-       
-    # Motor Dynamics: dX = [w1dot w2dot w3dot w4dot], U = Pulse Width of the pwm signal 0-1000%
-    dX[12] = -(1/Mtau)*w1 + (Ku/Mtau)*U[0]
-    dX[13] = -(1/Mtau)*w2 + (Ku/Mtau)*U[1]
-    dX[14] = -(1/Mtau)*w3 + (Ku/Mtau)*U[2]
-    dX[15] = -(1/Mtau)*w4 + (Ku/Mtau)*U[3]
     
     # Motor Forces and Torques
     F[0] = Kthrust*math.pow(w1,2) + Kthrust2*w1
@@ -61,17 +56,23 @@ def Quad_Dynamics(t,X,U):
     dX[0] = xdot
     dX[2] = ydot
     dX[4] = zdot
-    dX[6] = p + q*(math.sin(phi)*math.tan(theta)) + r*(math.cos(phi)*math.tan(theta))
-    dX[8] = q*math.cos(phi) - r*math.sin(phi)
-    dX[10] = q*(math.sin(phi)/math.cos(theta)) + r*(math.cos(phi)/math.cos(theta))
+    dX[6] = p + q*(cmath.sin(phi).real*cmath.tan(theta).real) + r*(cmath.cos(phi).real*cmath.tan(theta).real)
+    dX[8] = q*cmath.cos(phi).real - r*cmath.sin(phi).real
+    dX[10] = q*(cmath.sin(phi).real/cmath.cos(theta).real) + r*(cmath.cos(phi).real/cmath.cos(theta).real)
     
     # Second Order Direvatives: dX = [xddot yddot zddot pdot qdot rdot]
-    dX[1] = Fn/M*(math.cos(phi)*math.sin(theta)*math.cos(psi)) + Fn/M*(math.sin(phi)*math.sin(psi)) - (Dxx/M)*xdot
-    dX[3] = Fn/M*(math.cos(phi)*math.sin(theta)*math.sin(psi)) - Fn/M*(math.sin(phi)*math.cos(psi)) - (Dyy/M)*ydot
-    dX[5] = Fn/M*(math.cos(phi)*math.cos(theta)) - g - (Dzz/M)*zdot
+    dX[1] = Fn/M*(cmath.cos(phi).real*cmath.sin(theta).real*cmath.cos(psi).real) + Fn/M*(cmath.sin(phi).real*cmath.sin(psi).real) - (Dxx/M)*xdot
+    dX[3] = Fn/M*(cmath.cos(phi).real*cmath.sin(theta).real*cmath.sin(psi).real) - Fn/M*(cmath.sin(phi).real*cmath.cos(psi).real) - (Dyy/M)*ydot
+    dX[5] = Fn/M*(cmath.cos(phi).real*cmath.cos(theta).real) - g - (Dzz/M)*zdot
     
     dX[7] = (L/Ixx)*(F[0]+F[1] - F[2]+F[3]) - (((Izz-Iyy)/Ixx)*(r*q))
     dX[9] = (L/Iyy)*(F[0]+F[2] - F[1]+F[3]) - (((Izz-Ixx)/Iyy)*(p*r))
     dX[11] = Tn/Izz - (((Iyy-Ixx)/Izz)*(p*q))
+
+    # Motor Dynamics: dX = [w1dot w2dot w3dot w4dot], U = Pulse Width of the pwm signal 0-1000%
+    dX[12] = -(1/Mtau)*w1 + (Ku/Mtau)*U[0]
+    dX[13] = -(1/Mtau)*w2 + (Ku/Mtau)*U[1]
+    dX[14] = -(1/Mtau)*w3 + (Ku/Mtau)*U[2]
+    dX[15] = -(1/Mtau)*w4 + (Ku/Mtau)*U[3]
     
     return dX

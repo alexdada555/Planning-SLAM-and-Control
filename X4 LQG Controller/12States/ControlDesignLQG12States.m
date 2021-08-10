@@ -7,16 +7,16 @@ format short; % keeps numerical output SF low
 pkg load control;
 
 %% Mass of the Multirotor in Kilograms as taken from the CAD
-M = 0.857945; 
+M = 1.157685; 
 g = 9.81;
 
 %% Dimensions of Multirotor
 L = 0.16319; % along X-axis and Y-axis Distance from left and right motor pair to center of mass
 
 %% Mass Moment of Inertia as Taken from the CAD
-Ixx = 1.061E+05/(1000*10000);
-Iyy = 1.061E+05/(1000*10000);
-Izz = 2.011E+05/(1000*10000);
+Ixx = 1.129E+05/(1000*10000);
+Iyy = 1.129E+05/(1000*10000);
+Izz = 2.033E+05/(1000*10000);
 
 %% Motor Thrust and Torque Constants (To be determined experimentally)
 Ktau =  7.708e-10 * 2;
@@ -113,7 +113,7 @@ Dr = zeros(q,4);
 
 Adtaug = [Adt zeros(n,r); 
           -Cr*Adt eye(q,r)];
-   
+
 Bdtaug = [Bdt; 
         -Cr*Bdt];
 
@@ -122,8 +122,7 @@ Cdtaug = [C zeros(r,r)];
 %% Discrete-Time Full State-Feedback Control
 % State feedback control design with integral control via state augmentation
 % Z Phi Theta Psi are controlled outputs
-
-Q = diag([5000,0,1000,0,1000,0,5000,0,0,0,0,0,5,20,20,0.4]); % State penalty
+Q = diag([8000,0,2000,0,2000,0,8000,0,0,0,0,0,7,25,25,0.5]); % State penalty
 R = eye(4,4)*(10^-4);  % Control penalty
 
 Kdtaug = dlqr(Adtaug,Bdtaug,Q,R); % DT State-Feedback Controller Gains
@@ -198,11 +197,11 @@ for k = 2:kT-1
     
     %Control
     Xe(:,k) = Xe(:,k-1) + (Ref - Xest([1,3,5,7],k));   % Integrator 
-    U(:,k) = min(800, max(0, U_e - [Kdt,Kidt]*[Xest(:,k);Xe(:,k)])); % Constraint Saturation 
+    U(:,k) = min(800, max(0, Ref + U_e - [Kdt,Kidt]*[Xest(:,k);Xe(:,k)])); % Constraint Saturation 
     
     %Simulation    
     t_span = [0,T];
-    xode = ode45(@(t,X) Quad_Dynamics(t,X,U(:,k)),t_span,Xreal(:,k)); % Runge-Kutta Integration Nonlinear Dynamics
+    xode = ode45(@(t,X) Quad_Dynamics_V(t,X,U(:,k)),t_span,Xreal(:,k)); % Runge-Kutta Integration Nonlinear Dynamics
     Xreal(:,k+1) = xode.y(:,end);
     
 %    X(:,k+1) = Adt*X(:,k) + Bdt*U(:,k);  % Fully Linear Dynamics
@@ -268,17 +267,16 @@ xlabel('Time(s)')
 ylabel('Micro Seconds(ms)')
 
 
-% Cpoles = eig(Adtaug - (Bdtaug*[Kdt,Kidt]));
-% % System Unstable
-% 
-% figure(6)
-% plot(Cpoles(1:14),'*')
-% grid on
-% title('Closed-Loop Eigenvalues')
+Cpoles = eig(Adtaug - (Bdtaug*[Kdt,Kidt]));
+% System Unstable
+
+figure(6)
+plot(Cpoles(1:14),'*')
+grid on
+title('Closed-Loop Eigenvalues')
 
 
 %% PRINT TO CONFIGURATION FILES
-
 dlmwrite ("Adt.txt", Adt,',', 0, 0)
 
 dlmwrite ("Bdt.txt", Bdt,',', 0, 0)
