@@ -92,8 +92,9 @@ def main():
     Time = (len(rx) - 1)/sFactor
     kT = round(Time/T)
     t = np.arange(0.0,kT)*T
-    
+    st =(0,T)
     X = np.zeros((Adt.shape[0],1))
+    X0 = np.zeros(Adt.shape[0])
     prevX = np.zeros((Adt.shape[0],1))
     Xreal = np.zeros((Adt.shape[0],1))
     dX = np.zeros((Adt.shape[0],1))
@@ -119,31 +120,33 @@ def main():
         Ref[0,0] = rx[len(rx)-int(k*sFactor/(T*10000))-1]
         Ref[1,0] = ry[len(ry)-int(k*sFactor/(T*10000))-1]
         Ref[2,0] = 1.5
-
+        
         # Keep heading towards goal
         E_x = gx - X[0,0]
         E_y = gy - X[2,0]
         targPsi = (math.pi/2) - math.atan(E_y/E_x)
         Ref[3,0] = targPsi  
-
+        
         # Outputs
         Y = X[[0,2,4,10]]
         #Y = Xreal[[4,6,8,10]].reshape((4,1))
         
         # Pass output and previous input into LQG function, return current input
-        U = LQG.calculate(prevU,Y,Ref,False)
-
+        U = LQG.calculate(prevU,Y,Ref,True)
+        
         # Linear Dynamics Simulation
-        #X = Adt @ X + Bdt @ U
+        X = Adt @ X + Bdt @ U
         
         # Non Linear Dynamics Simulation
-        #dX = QD.Quad_Dynamics(k,Xreal[:].reshape(16,1),U[:].reshape(4,1)) # Forward Euler Integration Nonlinear Dynamics
-        #Xreal[:] = Xreal[:].reshape(16,1) + T*dX[:].reshape((16,1))
-
+        #dX = QD.Quad_Dynamics(k,Xreal,U,1) # Forward Euler Integration Nonlinear Dynamics
+        #Xreal = Xreal + T*dX.reshape((16,1))
+        
         # Non Linear Dynamics Simulation
-        ode = lambda k, Xreal, U : QD.Quad_Dynamics(k,Xreal[:].reshape(16,1),U[:].reshape(4,1))
-        Xy = solve_ivp(numba.jit(ode,forceobj=True),[0,kT],Xreal[:].reshape(16),method='RK45',vectorized=True,args=(U[:],))
-        Xreal = Xy.y[:,1]
+        #Xy = solve_ivp(QD.Quad_Dynamics,st,X0,args=(Xreal.reshape(16),U.reshape(4)),method='RK45',vectorized=True)
+        #Xreal = Xy.y[:,1]
+        
+        # Non Linear Dynamics Simulation
+        #Xreal[:,0] = odeint(QD.Quad_Dynamics,X0,st,args=(Xreal[:,0],U[:,0]),tfirst=1)[1:]
         
         prevU = U
         
@@ -151,12 +154,12 @@ def main():
         Uplot[:,k] = U[:,0]
         
         # Linear States and Outputs
-        #Yplot[:,k] = Y[:,0]
-        #Xplot[:,k] = X[:,0]
+        Yplot[:,k] = Y[:,0]
+        Xplot[:,k] = X[:,0]
         
         # Non Linear States and Outputs
-        Yplot[:,k] = Y[:].reshape(4)
-        Xplot[:,k] = Xreal[:].reshape(16)
+        #Yplot[:,k] = Y.reshape(4)
+        #Xplot[:,k] = Xreal.reshape(16)
         #print(Xplot[0,k])
         
     # Plots
@@ -171,14 +174,16 @@ def main():
     ax.set_xlabel('Time(s)')
     ax.set_ylabel('Meters(m)')
     ax.set_title('Position')
-        
+    
     fig2, ax2 = plt.subplots()
-    ax2.plot(t,Xplot[10,:]*180/math.pi)
+    ax2.plot(t,Xplot[6,:]*180/math.pi,"-g")
+    ax2.plot(t,Xplot[8,:]*180/math.pi,"-b")
+    ax2.plot(t,Xplot[10,:]*180/math.pi,"-r")
     ax2.plot(t,Refplot[3,:]*180/math.pi)
     ax2.grid(True)
     ax2.set_xlabel('Time(s)')
     ax2.set_ylabel('Degrees(d)')
-    ax2.set_title('Heading')
+    ax2.set_title('Attitude')
     
     fig3, ax3 = plt.subplots()
     ax3.plot(t,Uplot[0,:])
@@ -194,7 +199,6 @@ def main():
     for k in range(0,kT):
         UAV = plt.Circle((Xplot[0,k],Xplot[2,k]),radius=1,color="red")
         ax0.add_patch(UAV)
-        
     '''
     rectangle = plt.Rectangle((10,10),width=2,height=4,color="red")
     '''

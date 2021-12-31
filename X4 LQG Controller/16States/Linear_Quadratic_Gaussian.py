@@ -27,7 +27,6 @@ class LQG:
         self.Y = np.zeros((self.Cdt.shape[0],1))
         self.e = np.zeros((self.Cdt.shape[0],1))
         
-        
     def calculate(self,prevU,Y,Ref,Linear):
         
         self.Y = Y[:]
@@ -47,11 +46,9 @@ class LQG:
             self.Xest = self.Xest + self.Ldt @ self.e
         
             self.Xe = self.prevXe + (self.Ref - self.Xest[[0,2,4,10]]) # Integrator
-            self.U =  self.U_e - (self.Kdt @ self.Xest) - (self.Kidt @ self.Xe)
+            self.U =  np.clip(self.U_e - (self.Kdt @ self.Xest) - (self.Kidt @ self.Xe),0,800)
             
         self.prevXe = self.Xe
         self.prevXest = self.Xest
         
         return self.U[:]
-
-    

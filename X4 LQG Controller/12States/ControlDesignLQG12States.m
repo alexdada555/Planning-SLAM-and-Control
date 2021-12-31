@@ -277,18 +277,18 @@ title('Closed-Loop Eigenvalues')
 
 
 %% PRINT TO CONFIGURATION FILES
-dlmwrite ("Adt.txt", Adt,',', 0, 0)
+dlmwrite ("Adt.txt", single(Adt),',', 0, 0)
 
-dlmwrite ("Bdt.txt", Bdt,',', 0, 0)
+dlmwrite ("Bdt.txt", single(Bdt),',', 0, 0)
 
-dlmwrite ("Cdt.txt", Cdt,',', 0, 0)
+dlmwrite ("Cdt.txt", single(Cdt),',', 0, 0)
 
-dlmwrite ("Ddt.txt", Ddt,',', 0, 0)
+dlmwrite ("Ddt.txt", single(Ddt),',', 0, 0)
 
-dlmwrite ("Kdt.txt", Kdt,',', 0, 0)
+dlmwrite ("Kdt.txt", single(Kdt),',', 0, 0)
 
-dlmwrite ("Kidt.txt", Kidt,',', 0, 0)
+dlmwrite ("Kidt.txt", single(Kidt),',', 0, 0)
 
-dlmwrite ("Ldt.txt", Ldt,',', 0, 0)
+dlmwrite ("Ldt.txt", single(Ldt),',', 0, 0)
 
-dlmwrite ("U_e.txt", U_e,',', 0, 0)
+dlmwrite ("U_e.txt", single(U_e),',', 0, 0)
