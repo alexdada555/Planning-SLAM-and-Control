@@ -21,7 +21,7 @@ Izz = 2.011E+05/(1000*10000);
 Ktau =  7.708e-10 * 2;
 Kthrust =  1.812e-07;
 Kthrust2 = 0.0007326;
-Mtau = (1/44.22);
+Mtau = 1/44.22;
 Ku = 515.5;
 
 %% Air resistance damping coeeficients
@@ -51,52 +51,46 @@ w2 = X(14);
 w3 = X(15);
 w4 = X(16);
 
-%% Initialise Outputs
-
-dX = zeros(16,1);
-
 %% Motor Forces and Torques
 
-F = zeros(4,1);
-T = zeros(4,1);
+F1 = Kthrust*w1*w1 + Kthrust2*w1;
+F2 = Kthrust*w2*w2 + Kthrust2*w2;
+F3 = Kthrust*w3*w3 + Kthrust2*w3;
+F4 = Kthrust*w4*w4 + Kthrust2*w4;
 
-F(1) = Kthrust*(w1^2) + Kthrust2*w1;
-F(2) = Kthrust*(w2^2) + Kthrust2*w2;
-F(3) = Kthrust*(w3^2) + Kthrust2*w3;
-F(4) = Kthrust*(w4^2) + Kthrust2*w4;
+T1 = Ktau*w1*w1;
+T2 = -Ktau*w2*w2;
+T3 = -Ktau*w3*w3;
+T4 = Ktau*w4*w4;
 
-T(1) = Ktau*(w1^2);
-T(2) = -Ktau*(w2^2);
-T(3) = -Ktau*(w3^2);
-T(4) = Ktau*(w4^2);
-
-Fn = sum(F);
-Tn = sum(T);
+Fn = F1+F2+F3+F4;
+Tn = T1+T2+T3+T4;
 
 %% First Order Direvatives dX = [xdot ydot zdot phidot thetadot psidot]
 
-dX(1) = xdot;
-dX(3) = ydot;
-dX(5) = zdot;
-dX(7) = p + q*(sin(phi)*tan(theta)) + r*(cos(phi)*tan(theta));
-dX(9) = q*cos(phi) - r*sin(phi);
-dX(11) = q*(sin(phi)/cos(theta)) + r*(cos(phi)/cos(theta));
+dX1 = xdot;
+dX3 = ydot;
+dX5 = zdot;
+dX7 = p + q*(sin(phi)*tan(theta)) + r*(cos(phi)*tan(theta));
+dX9 = q*cos(phi) - r*sin(phi);
+dX11 = q*(sin(phi)/cos(theta)) + r*(cos(phi)/cos(theta));
 
 %% Second Order Direvatives: dX = [xddot yddot zddot pdot qdot rdot]
 
-dX(2) = Fn/M*(cos(phi)*sin(theta)*cos(psi)) + Fn/M*(sin(phi)*sin(psi)) - (Dxx/M)*xdot;
-dX(4) = Fn/M*(cos(phi)*sin(theta)*sin(psi)) - Fn/M*(sin(phi)*cos(psi)) - (Dyy/M)*ydot;
-dX(6) = g - Fn/M*(cos(phi)*cos(theta)) -(Dzz/M)*zdot;
+dX2 = Fn/M*(cos(phi)*sin(theta)*cos(psi)) + Fn/M*(sin(phi)*sin(psi)) - (Dxx/M)*xdot;
+dX4 = Fn/M*(cos(phi)*sin(theta)*sin(psi)) - Fn/M*(sin(phi)*cos(psi)) - (Dyy/M)*ydot;
+dX6 = g - Fn/M*(cos(phi)*cos(theta)) -(Dzz/M)*zdot;
 
-dX(8) = (L/Ixx)*((F(1)+F(2)) - (F(3)+F(4))) - (((Izz-Iyy)/Ixx)*(r*q)); 
-dX(10) = (L/Iyy)*((F(1)+F(3)) - (F(2)+F(4))) - (((Izz-Ixx)/Iyy)*(p*r));
-dX(12) = Tn/Izz - (((Iyy-Ixx)/Izz)*(p*q));
+dX8 = (L/Ixx)*((F1+F2) - (F3+F4)) - (((Izz-Iyy)/Ixx)*(r*q)); 
+dX10 = (L/Iyy)*((F1+F3) - (F2+F4)) - (((Izz-Ixx)/Iyy)*(p*r));
+dX12 = Tn/Izz - (((Iyy-Ixx)/Izz)*(p*q));
 
 %% Motor Dynamics: dX = [w1dot w2dot w3dot w4dot], U = Pulse Width of the pwm signal 0-1000
 
-dX(13) = -(1/Mtau)*w1 + Ku*U(1);
-dX(14) = -(1/Mtau)*w2 + Ku*U(2);
-dX(15) = -(1/Mtau)*w3 + Ku*U(3);
-dX(16) = -(1/Mtau)*w4 + Ku*U(4);
+dX13 = -(1/Mtau)*w1 + Ku*U(1);
+dX14 = -(1/Mtau)*w2 + Ku*U(2);
+dX15 = -(1/Mtau)*w3 + Ku*U(3);
+dX16 = -(1/Mtau)*w4 + Ku*U(4);
 
+dX = [dX1;dX2;dX3;dX4;dX5;dX6;dX7;dX8;dX9;dX10;dX11;dX12;dX13;dX14;dX15;dX16];
 end

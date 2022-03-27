@@ -1,0 +1,46 @@
+%% Model simplification
+% sin x -> x; cos x -> 1; tan x -> x; no distrurbances
+syms x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12
+syms u1 u2 u3 u4
+
+xdot1=x4;
+xdot2=x5;
+xdot3=x6;
+xdot4=(u1/m)*(x8+x9*x7)-kx*x4/m;
+xdot5=(u1/m)*(x9*x8-x7)-ky*x5/m;
+xdot6=(u1/m)-g-kz*x6/m;
+xdot7=x10+x11*x7*x8+x12*x8;
+xdot8=x11-x12*x7;
+xdot9=x7*x11+x12;
+xdot10=(u2/Ix)-((Iy-Iz)/Ix)*x11*x12;
+xdot11=(u3/Iy)-((Iz-Ix)/Iy)*x10*x12;
+xdot12=(u4/Iz)-((Ix-Iy)/Iz)*x10*x11;
+
+xdot=[xdot1 xdot2 xdot3 xdot4 xdot5 xdot6 xdot7 xdot8 xdot9 xdot10 xdot11 xdot12].';
+x=[x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12].';
+u=[u1 u2 u3 u4].';
+y=[x1 x2 x3 x9].';
+
+[x_size,aux]=size(x);
+[y_size,aux]=size(y);
+[u_size,aux]=size(u);
+
+%xdot=subs(xdot,[u1 u2 u3 u4],[m*g 0 0 0])
+%[e1 e2 e3 e4 e5 e6 e7 e8 e9 e10 e11 e12]=solve(xdot,[x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12])
+% Equilibrium points
+%ue=[m*g 0 0 0].';
+%xe=[x1 x2 x3 0 0 0 0 0 0 0 0 0].';
+
+%% Jacobian linearization
+% Equilibrium points
+ue=[m*g 0 0 0].';
+xe=[x1 x2 x3 0 0 0 0 0 0 0 0 0].';
+
+
+JA=jacobian(xdot,x.');
+JB=jacobian(xdot,u.');
+JC=jacobian(y, x.');
+
+A=subs(JA,[x,u],[xe,ue]); A=eval(A);
+B=subs(JB,[x,u],[xe,ue]); B=eval(B);
+C=subs(JC,[x,u],[xe,ue]); C=eval(C);

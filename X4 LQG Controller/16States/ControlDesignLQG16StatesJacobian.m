@@ -5,6 +5,10 @@ format short;
 
 %% Octave Packeges
 pkg load control;
+pkg load optim;
+pkg load symbolic;
+
+warning ("off");
 
 %% Mass of the Multirotor in Kilograms as taken from the CAD
 
@@ -29,11 +33,25 @@ Kthrust2 = 0.0007326;
 Mtau = 1/44.22;
 Ku = 515.5;
 
-%% Equilibrium Input
+%% Jacobian Linearisation
+syms x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16
+syms u1 u2 u3 u4
+
+Xs = [x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16].';
+Us = [u1 u2 u3 u4].';
+
+dX = Quad_Dynamics(0,Xs,Us);
+
+%% Equilibrium Points
 
 W_e = ((-4*Kthrust2) + sqrt((4*Kthrust2)^2 - (4*(-M*g)*(4*Kthrust))))/(2*(4*Kthrust))*ones(4,1);
 U_e = (W_e/(Ku*Mtau));
+X_e = [x1;0;x2;0;x3;0;0;0;0;0;0;0;W_e];
 
+%% Jacobian Matrices
+
+JA = jacobian(dX,Xs.');
+JB = jacobian(dX,Us.');
 
 %% Define Discrete-Time BeagleBone Dynamics
 
@@ -41,43 +59,15 @@ T = 0.01; % Sample period (s)- 100Hz
 ADC = 3.3/((2^12)-1); % 12-bit ADC Quantization
 DAC =  3.3/((2^12)-1); % 12-bit DAC Quantization
 
-%% Define Linear Continuous-Time Multirotor Dynamics: x_dot = Ax + Bu, y = Cx + Du         
+%% Define Linear Continuous-Time Multirotor Dynamics: x_dot = Ax + Bu, y = Cx + Du
+        
+JA1 = subs(JA,Xs,X_e); 
+A = subs(JA1,Us,U_e); 
+A = eval(A);
 
-% A = 16x16 matrix
-A = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
-     0, 0, 0, 0, 0, 0, 0, 0, -g, 0, 0, 0, 0, 0, 0, 0;
-     0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
-     0, 0, 0, 0, 0, 0, g, 0, 0, 0, 0, 0, 0, 0, 0, 0;
-     0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -2*Kthrust*W_e(1)/M, -2*Kthrust*W_e(2)/M, -2*Kthrust*W_e(3)/M, -2*Kthrust*W_e(4)/M;
-     0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0;
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, L*2*Kthrust*W_e(1)/Ixx, L*2*Kthrust*W_e(2)/Ixx, -L*2*Kthrust*W_e(3)/Ixx, -L*2*Kthrust*W_e(4)/Ixx;
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0;
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, L*2*Kthrust*W_e(1)/Iyy, -L*2*Kthrust*W_e(2)/Iyy, L*2*Kthrust*W_e(3)/Iyy, -L*2*Kthrust*W_e(4)/Iyy;
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0;
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2*Ktau*W_e(1)/Izz, -2*Ktau*W_e(2)/Izz, -2*Ktau*W_e(3)/Izz, 2*Ktau*W_e(4)/Izz;
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1/Mtau, 0, 0, 0;
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1/Mtau, 0, 0;
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1/Mtau, 0;
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1/Mtau];
-
-% B = 16x4 matrix
-B = [0, 0, 0, 0;
-     0, 0, 0, 0;
-     0, 0, 0, 0;
-     0, 0, 0, 0;
-     0, 0, 0, 0;
-     0, 0, 0, 0;
-     0, 0, 0, 0;
-     0, 0, 0, 0;
-     0, 0, 0, 0;
-     0, 0, 0, 0;
-     0, 0, 0, 0;
-     0, 0, 0, 0;
-     Ku, 0, 0, 0;
-     0, Ku, 0, 0;
-     0, 0, Ku, 0;
-     0, 0, 0, Ku];
+JB1 = subs(JB,Xs,X_e); 
+B = subs(JB1,Us,U_e); 
+B = eval(B);
 
 % C = 4x16 matrix
 C = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
@@ -108,13 +98,14 @@ poles = eig(Adt);
 figure(1);
 plot(poles,'*');
 grid on;
-title('Discrete System Eigenvalues');
+title('Discrete System Eigenvalues')
 
-cntr = rank(ctrb(Adt,Bdt));
+cntr = rank(ctrb(Adt,Bdt))
 % Fully Reachable
 
-obs = rank(obsv(Adt,Cdt));
+obs = rank(obsv(Adt,Cdt))
 % Fully Observable
+
 
 %% Discrete-Time Full Integral Augmaneted System 
 
@@ -166,7 +157,7 @@ Ldt = dlqe(Adt,Gdt,Cdt,Rw,Rv);
 
 %% Dynamic Simulation
 
-Time = 1;
+Time = 60;
 kT = round(Time/T);
 
 X = zeros(16,kT);
@@ -178,33 +169,32 @@ e = zeros(4,kT);
 
 U = ones(4,kT);
 U(:,1) = U_e;
+U(:,2) = U_e;
 Ref = [0;0;0;0];
 
 t_span = [0,T];
+    
+for k = 3:kT-1
 
-profile on;
-PROT = profile("info");
+%%  Reference Setting
 
-for k = 2:kT-1
-
-    %Reference Setting
     if k == 10/T
-        Ref(1) = 0.2;
+        Ref(1) = 1;
     end
     if k == 15/T
         Ref(1) = 0;
     end
     if k == 20/T
-        Ref(2) = 0.2;
+        Ref(2) = 1;
     end
     if k == 25/T
         Ref(2) = 0;
     end
     if k == 30/T
-        Ref(3) = -0.2;
+        Ref(3) = 1;
     end
     if k == 35/T
-        Ref(3) = -0.2;
+        Ref(3) = 0;
     end
     if k == 40/T
         Ref(4) = 90*pi/180;
@@ -213,41 +203,61 @@ for k = 2:kT-1
         Ref(4) = 0;
     end
 
-    %Estimation
+%%  Estimation
+
 %    Xest(:,k) = Adt*Xest(:,k-1) + Bdt*(U(:,k-1)-U_e); % No KF Linear Prediction   
 
 %    Xest(:,k) = Xreal(:,k);  % No KF Non Linear Prediction
 
 %    Y(:,k) = Xreal([1,3,5,11],k);
+%    Xest(:,k) = Adt*Xest(:,k-1) + Bdt*(U(:,k-1)-U_e);   % Linear Kalman Prediction
+%    e(:,k) = [Y(:,k) - Xest([1,3,5,11],k)];
+%    Xest(:,k) = Xest(:,k) + Ldt*e(:,k);
+
+%    Y(:,k) = Xreal([1,3,5,11],k);
 %    xkf = [Xest(:,k-1)];
-%    xode = ode45(@(t,X) Quad_Dynamics(t,X,U(:,k-1)),t_span,xkf); % Nonlinear Prediction
+%    xode = ode45(@(t,X) Quad_Dynamics(t,X,U(:,k-1)),t_span,xkf); % Limited Nonlinear Kalman Prediction
 %    Xest(:,k) = xode.y(:,end);
 %    e(:,k) = [Y(:,k) - Xest([1,3,5,11],k)];
 %    Xest(:,k) = Xest(:,k) + Ldt*e(:,k);
 
+   JA1 = subs(JA,Xs,Xest(:,k));
+   JA2 = subs(JA1,Us,U(:,k)); 
+   A = eval(JA2);
+   JB1 = subs(JB,Xs,Xest(:,k)); 
+   JB2 = subs(JB1,Us,U(:,k)); 
+   B = eval(JB2);
+    
+    sysdt = c2d(ss(A,B,C,D),T,'zoh');  % Extended Kalman Prediction
+    Adt = sysdt.a;
+    
+    LdtEkf = dlqe(Adt,Gdt,Cdt,Rw,Rv);
+    
     Y(:,k) = Xreal([1,3,5,11],k);
-    Xest(:,k) = Adt*Xest(:,k-1) + Bdt*(U(:,k-1)-U_e);   % Linear Prediction
+    Xest(:,k) = Adt*Xest(:,k-1) + Bdt*(U(:,k-1)-U_e);
     e(:,k) = [Y(:,k) - Xest([1,3,5,11],k)];
     Xest(:,k) = Xest(:,k) + Ldt*e(:,k);
 
-    %Control
+%%  Control
+
     Xe(:,k) = Xe(:,k-1) + (Ref - Xest([1,3,5,11],k));   % Integrator 
     U(:,k) = min(800, max(0, U_e - [Kdt,Kidt]*[Xest(:,k) ;Xe(:,k)])); % Constraint Saturation 
 
-    %Simulation    
+%%  Simulation    
+%{  
     t_span = [0,T];
     xode = ode45(@(t,X) Quad_Dynamics(t,X,U(:,k)),t_span,Xreal(:,k)); % Runge-Kutta Integration Nonlinear Dynamics
     Xreal(:,k+1) = xode.y(:,end);
-
+%}
 %    t=t_span;
 %    [dX] = Quad_Dynamics(t,Xreal(:,k),U(:,k)); % Forward Euler Integration Nonlinear Dynamics
 %    Xreal(:,k+1) = Xreal(:,k) + T*dX;
 
-%    Xreal(:,k+1) = Adt*Xreal(:,k) + Bdt*(U(:,k)-U_e);  % Fully Linear Dynamics
+    Xreal(:,k+1) = Adt*Xreal(:,k) + Bdt*(U(:,k)-U_e);  % Fully Linear Dynamics
 end
 
-PROT = profile("info");
-profile off;
+%PROT = profile("info");
+%profile off;
 
 Rad2Deg = [180/pi,180/pi,180/pi]';
 
@@ -255,7 +265,7 @@ Rad2Deg = [180/pi,180/pi,180/pi]';
 t = (0:kT-1)*T;
 figure(2);
 subplot(2,1,1);
-plot(t,Xreal([1,3,5],:).*[1,1,-1]');
+plot(t,Xreal([1,3,5],:));
 legend('X','Y','Z');
 title('Real Position');
 xlabel('Time(s)');
@@ -270,7 +280,7 @@ ylabel('Degrees(d)');
 
 figure(3);
 subplot(2,1,1);
-plot(t,Xest([1,3,5],:).*[1,1,-1]');
+plot(t,Xest([1,3,5],:));
 legend('X_e','Y_e','Z_e');
 title('Estimated Position');
 xlabel('Time(s)');
@@ -318,7 +328,7 @@ grid on;
 title('Closed-Loop Estimator Eigenvalues');
 
 %% PRINT TO CONFIGURATION FILES
-
+%{
 dlmwrite("Adt.txt", Adt,',', 0, 0);
 dlmwrite("Bdt.txt", Bdt,',', 0, 0);
 dlmwrite("Cdt.txt", Cdt,',', 0, 0);
@@ -327,3 +337,4 @@ dlmwrite("Kdt.txt", Kdt,',', 0, 0);
 dlmwrite("Kidt.txt", Kidt,',', 0, 0);
 dlmwrite("Ldt.txt", Ldt,',', 0, 0);
 dlmwrite("U_e.txt", U_e,',', 0, 0);
+%}
